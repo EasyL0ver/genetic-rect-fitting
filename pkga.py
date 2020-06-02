@@ -9,6 +9,27 @@ class GABoolValueTemplate:
         if len(bit_array) != self.bits:
             raise "Cannot decode, array length mismatch"
         return bool(bit_array[0])
+
+class GAIntegerValueTemplate:
+    def __init__(self, min_value, max_value, bits):
+        diff = max_value - min_value
+        self.bits = bits
+        self.bit_factor = diff / (pow(2, bits) - 1)
+        self.min_value = min_value
+        self.max_value = max_value
+
+    def decode(self, bit_array):
+        if len(bit_array) != self.bits:
+            raise "Cannot decode, array length mismatch"
+
+        out = 0
+        for bit in bit_array:
+            out = (out << 1) | bit
+
+        return int(round(self.min_value + out * self.bit_factor))
+
+
+
     
 
 class GAFloatValueTemplate:
@@ -70,9 +91,12 @@ class Gene:
         return Gene(self.bit_string.copy())
 
     def mutate(self, pmut):
+        mutated = False
         for i in range(len(self.bit_string)):
             if random.random() < pmut:
                 self.bit_string[i] = not self.bit_string[i]
+                mutated = True
+        return mutated
 
 class Specimen:
     def __init__(self, genome, template):
@@ -88,7 +112,7 @@ class Specimen:
         self.genome.cross_over(other.genome)
 
     def mutate(self, pmut):
-        self.genome.mutate(pmut)
+        return self.genome.mutate(pmut)
 
     def copy(self):
         return Specimen(self.genome.copy(), self.template)
@@ -148,10 +172,8 @@ class Simulation:
             if random.random() < self.crossover_rate:
                 mating_partner = self.selector.select(self.pop).copy()
                 offspring = specimen.copy()
-
                 offspring.mate_with(mating_partner) 
-
-                new_specimen.append(offspring)              
+                new_specimen.append(offspring)   
             else:
                 new_specimen.append(specimen)
         
@@ -159,13 +181,14 @@ class Simulation:
 
     def mutation_step(self):
         for specimen in self.pop:
-            self.mutator.mutate(specimen, self.current_generation)
-
-            self.evaluate(specimen)
+            mutated = self.mutator.mutate(specimen, self.current_generation)
 
     def run(self):
         while self.current_generation < self.generations:
             self.breeding_step()
             self.mutation_step()
+
+            for specimen in self.pop:
+                self.evaluate(specimen)
 
             self.current_generation = self.current_generation + 1
