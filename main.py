@@ -32,9 +32,8 @@ for i in range(len(fit_squares)):
     square_template.add_value("flip", flip_value)
     solution_template.add_value(i, square_template)
 
-
 s = ga.Simulation(100, solution_template, evaluator)
-s.crossover_rate = 0.8
+s.crossover_operator = ga.OnePointBinaryCrossover(0.8)
 s.selector = ga.RouletteSelector()
 s.mutator = SQMutator(0.02)
 s.monitor = g_monitor_conv
@@ -44,7 +43,6 @@ while time.time() < g_dead_line:
     s.step()
 
 best = s.get_ordered_specimens()[0]
-
 mapped_best = evaluator.map_data(best)
 rectangles = evaluator.place_rectangles(mapped_best)
 
@@ -59,9 +57,3 @@ plot_squares.print_coverage_data(parent_square, rectangles)
 plot_squares.plot_outcome(parent_square, rectangles, g_plot_path, show=g_show_plot)
 
 gaio.write_output_data(fit_squares, rectangles, g_output_path)
-
-
-
-
-        
-

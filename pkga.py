@@ -10,6 +10,7 @@ class GABoolValueTemplate:
             raise "Cannot decode, array length mismatch"
         return bool(bit_array[0])
 
+
 class GAIntegerValueTemplate:
     def __init__(self, min_value, max_value, bits):
         diff = max_value - min_value
@@ -76,11 +77,6 @@ class Gene:
     def __init__(self, bit_string):
         self.bit_string = bit_string
 
-    def cross_over(self, other):
-        index = random.randint(1, len(self.bit_string) - 1)
-        tmp = other.bit_string[:index].copy()
-        other.bit_string[:index], self.bit_string[:index]  = self.bit_string[:index], tmp
-
     def __repr__(self):
         return str(self.bit_string)
 
@@ -104,9 +100,6 @@ class Specimen:
     def __repr__(self):
         decoded = self.template.decode(self.genome.bit_string)
         return f"Specimen with fitness:{self.fitness} and value:{decoded}" 
-
-    def mate_with(self, other):
-        self.genome.cross_over(other.genome)
 
     def mutate(self, pmut):
         return self.genome.mutate(pmut)
@@ -136,11 +129,49 @@ class RouletteSelector:
         
         raise "Nothing chosen with roullette selecter"
             
-class FitnessEvaluator:
-    def evaluate(self, out, generation):
-        return 10
+
+class OnePointBinaryCrossover:
+    def __init__(self, pcross):
+        self.pcross = pcross
+    def cross_over(self, a, b):
+        if random.random() > self.pcross:
+            return
+        index = random.randint(1, len(a.genome.bit_string) - 1)
+        tmp = b.genome.bit_string[:index].copy()
+        b.genome.bit_string[:index], a.genome.bit_string[:index]  = a.genome.bit_string[:index], tmp
+
+class PermutationCrossover:
+    def __init__(self, pcross, bin_size, bin_amount):
+        self.pcross = pcross
+        self.bin_size = bin_size
+        self.bin_amount = bin_amount
+
+    def roll_cross_over_points(self):
+        a = random.randint(0, bin_amount)
+        b = random.randint(0, bin_amount)
+        s = sorted([a, b])
+        return s[0], s[1]
+
+    def cross_over(self,a,b):
+        if random.random() > self.pcross:
+            return
+        pstart, pstop = self.roll_cross_over_points()
+        pstartb = pstart * self.bin_size
+        pstopb = pstop * self.bin_size
+        ax = a.genome.bit_string
+        bx = b.genome.bit_string
+        child = [0] * len(ax)
+
+        child[pstartb:pstopb] = ax[pstartb:pstopb]
+
+        
 
 
+
+        
+
+
+    
 class Simulation:
     def __init__(self, pop_size, template, fitness_function):
         self.template = template
@@ -151,7 +182,7 @@ class Simulation:
         self.generations = 100
         self.selector = None
         self.mutator = None
-        self.crossover_rate = 0.6
+        self.crossover_operator = None
         self.monitor = False
         self.monitor_logs = []
         self.monitor_logs_avg = []
@@ -171,13 +202,11 @@ class Simulation:
     def breeding_step(self):
         new_specimen = []
         for specimen in self.pop:
-            if random.random() < self.crossover_rate:
-                mating_partner = self.selector.select(self.pop).copy()
-                offspring = specimen.copy()
-                offspring.mate_with(mating_partner) 
-                new_specimen.append(offspring)   
-            else:
-                new_specimen.append(specimen)
+            mating_partner = self.selector.select(self.pop).copy()
+            offspring = specimen.copy()
+            self.crossover_operator.cross_over(mating_partner, offspring)
+
+            new_specimen.append(offspring)
         
         self.pop = new_specimen
 

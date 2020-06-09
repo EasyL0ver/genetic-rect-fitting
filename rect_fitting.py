@@ -12,7 +12,6 @@ class OrderedSquare(Square):
     def __repr__(self):
         return f"{Square.__repr__(self)} order: {self.order}"
 
-
     def place(self, parent_square, placed_squares):
         placed_squares = sorted(placed_squares, key=lambda x:x.y_pos + x.height)
 
@@ -82,7 +81,7 @@ class SquareFittingEvaluator:
 
     def calc_fitness(self, placed_rectangles):
         areas = map(lambda x: x.area, placed_rectangles)
-        return sum(areas)
+        return pow(sum(areas),1)
 
     def evaluate(self, out, generation):
         rectangles = self.map_data(out)
