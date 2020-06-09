@@ -7,6 +7,12 @@ class Square:
     def __repr__(self):
         return f"Width: {self.width}, Height: {self.height}"
 
+    def is_equal(self, other):
+        same = self.width == other.width and self.height == other.height
+        same_flipped = self.width == other.height and self.height == other.width
+
+        return same or same_flipped
+
 class PlacedSquare(Square):
     def __init__(self, x_pos, y_pos, width, height):
         Square.__init__(self, width, height)

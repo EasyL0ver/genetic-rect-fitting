@@ -4,20 +4,28 @@ import random
 from itertools import groupby
 from geometry import Square, PlacedSquare
 from rect_fitting import OrderedSquare, SQMutator, SquareFittingEvaluator
+import time
+import gaio
+import os
 
+g_start_time = time.time()
+g_dead_line = g_start_time + 0.1 * 60
+g_parent_w = 2800
+g_parent_h = 2070
+g_show_plot = False
+g_monitor_conv = True
 
-parent_square = PlacedSquare(0, 0, 500, 500)
-test_data = [Square(150,150), Square(300,300), Square(100,100)]
-mapped_test = [OrderedSquare(150,150,1), OrderedSquare(300,300,2), OrderedSquare(100,100,3)]
-test_data = []
-for i in range(30):
-    test_data.append(Square(random.randint(30,200), random.randint(30,200)))
-evaluator = SquareFittingEvaluator(parent_square, test_data)
+g_input_path = "/home/pawel/szkola/ag_projekt/maleplyty.txt"
+g_output_path  = "/home/pawel/szkola/ag_projekt/output.txt"
+g_plot_path = "/home/pawel/szkola/ag_projekt/plots/"
 
+parent_square = PlacedSquare(0, 0, g_parent_w, g_parent_h)
+fit_squares = gaio.prepare_input_data(g_input_path)
+evaluator = SquareFittingEvaluator(parent_square, fit_squares)
 
 solution_template = ga.GAMultiValueTemplate()
-for i in range(len(test_data)):
-    order_value = ga.GAFloatValueTemplate(0, 100, 6)
+for i in range(len(fit_squares)):
+    order_value = ga.GAFloatValueTemplate(0, 100, 16)
     flip_value = ga.GABoolValueTemplate()
     square_template = ga.GAMultiValueTemplate()
     square_template.add_value("order", order_value)
@@ -25,25 +33,32 @@ for i in range(len(test_data)):
     solution_template.add_value(i, square_template)
 
 
-s = ga.Simulation(10, solution_template, evaluator)
-s.crossover_rate = 0.7
+s = ga.Simulation(100, solution_template, evaluator)
+s.crossover_rate = 0.8
 s.selector = ga.RouletteSelector()
-s.mutator = SQMutator(0.03)
+s.mutator = SQMutator(0.02)
+s.monitor = g_monitor_conv
 s.initialize()
-s.run()
 
-specimens = list(sorted(s.pop, key=lambda x:x.fitness, reverse=True))
-best = specimens[0]
+while time.time() < g_dead_line:
+    s.step()
+
+best = s.get_ordered_specimens()[0]
 
 mapped_best = evaluator.map_data(best)
 rectangles = evaluator.place_rectangles(mapped_best)
 
-zero_fitness_specimens = list(filter(lambda x:x.fitness == 0, specimens))
-print(specimens)
-print("Zero fitness specimens: " + str(len(zero_fitness_specimens)))
 print("Best fitness:" + str(best.fitness))
+print("Finished after: " + str(time.time() - g_start_time))
+print(f"After: {s.current_generation} generations")
 
-plot_squares.plot_outcome(parent_square, rectangles)
+if g_monitor_conv:
+    plot_squares.plot_convergence(s.monitor_logs, s.monitor_logs_avg)
+
+plot_squares.print_coverage_data(parent_square, rectangles)
+plot_squares.plot_outcome(parent_square, rectangles, g_plot_path, show=g_show_plot)
+
+gaio.write_output_data(fit_squares, rectangles, g_output_path)
 
 
 

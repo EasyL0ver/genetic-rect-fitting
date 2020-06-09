@@ -29,9 +29,6 @@ class GAIntegerValueTemplate:
         return int(round(self.min_value + out * self.bit_factor))
 
 
-
-    
-
 class GAFloatValueTemplate:
     def __init__(self, min_value, max_value, bits):
         self.min_value = min_value
@@ -155,7 +152,12 @@ class Simulation:
         self.selector = None
         self.mutator = None
         self.crossover_rate = 0.6
+        self.monitor = False
+        self.monitor_logs = []
+        self.monitor_logs_avg = []
 
+    def get_ordered_specimens(self):
+        return list(sorted(self.pop, key=lambda x:x.fitness, reverse=True))
 
     def initialize(self):
         for i in range(len(self.pop)):
@@ -182,6 +184,23 @@ class Simulation:
     def mutation_step(self):
         for specimen in self.pop:
             mutated = self.mutator.mutate(specimen, self.current_generation)
+
+    def step(self):
+        self.breeding_step()
+        self.mutation_step()
+
+        for specimen in self.pop:
+            self.evaluate(specimen)
+
+        self.current_generation = self.current_generation + 1
+
+        if self.monitor:
+            fitness_arr = list(map(lambda x:x.fitness, self.get_ordered_specimens()))
+            fitness_mean = sum(fitness_arr) / len(fitness_arr)
+
+            self.monitor_logs.append(fitness_arr[0])
+            self.monitor_logs_avg.append(fitness_mean)
+
 
     def run(self):
         while self.current_generation < self.generations:
