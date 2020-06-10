@@ -13,7 +13,7 @@ import os
 print(f"Running script in working directory: {os.getcwd()}")
 
 g_start_time = time.time()
-g_dead_line = g_start_time + 0.1 * 60
+g_dead_line = g_start_time + 3 * 60
 g_parent_w = 2800
 g_parent_h = 2070
 g_show_plot = False
@@ -26,7 +26,10 @@ la = len(sys.argv)
 if la >= 2:
     g_input_path = sys.argv[1]
 if la >= 3:
-    g_output_path = sys.argv[2]
+    g_dead_line = g_start_time + float(sys.argv[2]) * 60
+if la >= 4:
+    g_output_path = sys.argv[3]
+
 
 
 parent_square = PlacedSquare(0, 0, g_parent_w, g_parent_h)
