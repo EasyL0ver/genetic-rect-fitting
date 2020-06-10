@@ -1,5 +1,5 @@
 INPUT_PATH = maleplyty.txt
-TIME_RUN_MINUTES = 0.3
+TIME_RUN_MINUTES = 3
 
 
 make:
