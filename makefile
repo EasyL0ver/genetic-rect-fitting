@@ -8,3 +8,6 @@ make:
 clean:
 	rm -f ./plots/*
 	rm -f ./__pycache__/*
+
+dependencies:
+	pip install -r requirements.txt
