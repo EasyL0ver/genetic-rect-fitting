@@ -24,9 +24,9 @@ g_plot_path = "./plots/"
 
 la = len(sys.argv)
 if la >= 2:
-    g_input_path = sys.argv[0]
+    g_input_path = sys.argv[1]
 if la >= 3:
-    g_output_path = sys.argv[1]
+    g_output_path = sys.argv[2]
 
 
 parent_square = PlacedSquare(0, 0, g_parent_w, g_parent_h)

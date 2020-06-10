@@ -1,4 +1,5 @@
 import geometry
+import os
 
 def input_line_to_sqr(line):
     s = line.split()
@@ -7,6 +8,10 @@ def input_line_to_sqr(line):
 
 
 def prepare_input_data(path):
+    print(f"Opening input data from path: {path}")
+
+    if not os.path.isfile(path):
+        print(f"File: {path} not found - returning empty data")
     f = open(path)
     lines = f.readlines()
 
