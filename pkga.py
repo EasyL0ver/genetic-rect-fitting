@@ -1,5 +1,6 @@
 import numpy as np
 import random
+import time
 
 class GABoolValueTemplate:
     def __init__(self):
@@ -60,17 +61,19 @@ class GAMultiValueTemplate:
     def decode(self, bit_array):
         if len(bit_array) != self.bits:
             raise "Cannot decode, array length mismatch"
+
         
         out = dict()
         index = 0
+        try:
+            for value_name, value_template in self.values.items():
+                chunk = bit_array[index:index + value_template.bits]
+                decoded = value_template.decode(chunk)
 
-        for value_name, value_template in self.values.items():
-            chunk = bit_array[index:index + value_template.bits]
-            decoded = value_template.decode(chunk)
-
-            out[value_name] = decoded
-            index = index + value_template.bits
-
+                out[value_name] = decoded
+                index = index + value_template.bits
+        except Exception:
+            a = 1
         return out
 
 class Gene:
@@ -147,7 +150,7 @@ class PermutationCrossoverBin:
 
     def __repr__(self):
         out = 0
-        for bit in self.bit_arr:
+        for bit in self.bit_arr[:-1]:
             out = (out << 1) | bit
         return f"B{str(out)}"
 
@@ -157,8 +160,8 @@ class PermutationCrossoverBin:
     def compare_to(self, other):
         if not other:
             return False
-            
-        for i in range(len(self.bit_arr)):
+
+        for i in range(len(self.bit_arr) - 1):
             if self.bit_arr[i] != other.bit_arr[i]:
                 return False
         return True
@@ -181,6 +184,16 @@ class PermutationCrossover:
             sl = arr[i * self.bin_size:(i + 1) * self.bin_size]
             bins[i] = PermutationCrossoverBin(sl)
         return bins
+
+    def convert_from_bins(self, arr):
+        bits = [None] * (len(arr) * self.bin_size)
+        w_index = 0
+        for bin in arr:
+            for element in bin.bit_arr:
+                bits[w_index] = element
+                w_index += 1
+
+        return bits
 
     def set_substract(self, a_arr, b_arr):
         result = []
@@ -209,12 +222,16 @@ class PermutationCrossover:
         duplicates = self.set_substract(added, removed)
         lost = self.set_substract(removed, added)
 
-        for i in range(len(duplicates)):
-            index = None
-            for c in range(len(child)):
-                if duplicates[i].compare_to(child[c]):
-                    index = c
-            child[index] = lost[i]
+        try:
+            for i in range(len(duplicates)):
+                index = None
+                for c in range(len(child)):
+                    if duplicates[i].compare_to(child[c]):
+                        index = c
+                child[index] = lost[i]
+        except Exception:
+            a = 1
+
         
         child[pstart:pstop] = added
 
@@ -227,15 +244,8 @@ class PermutationCrossover:
         new_a = self.inner_cross_over(a,b,pstart,pstop)
         new_b = self.inner_cross_over(b,a,pstart,pstop)
 
-        a.genome.bit_string = new_a
-        b.genome.bit_string = new_b
-        
-
-
-
-        
-
-
+        a.genome.bit_string = self.convert_from_bins(new_a)
+        b.genome.bit_string = self.convert_from_bins(new_b)
     
 class Simulation:
     def __init__(self, pop_size, template, fitness_function):
@@ -255,9 +265,12 @@ class Simulation:
     def get_ordered_specimens(self):
         return list(sorted(self.pop, key=lambda x:x.fitness, reverse=True))
 
-    def initialize(self):
+    def initialize(self, initialzer = None):
         for i in range(len(self.pop)):
-            self.pop[i] = Specimen.create_random(self.template)
+            if not initialzer:
+                self.pop[i] = Specimen.create_random(self.template)
+            else:
+                self.pop[i] = initialzer.create_specimen(self.template)
             self.evaluate(self.pop[i])
 
     def evaluate(self, specimen):
@@ -280,13 +293,12 @@ class Simulation:
             mutated = self.mutator.mutate(specimen, self.current_generation)
 
     def step(self):
+        gen_time = time.time()
         self.breeding_step()
         self.mutation_step()
 
         for specimen in self.pop:
             self.evaluate(specimen)
-
-        self.current_generation = self.current_generation + 1
 
         if self.monitor:
             fitness_arr = list(map(lambda x:x.fitness, self.get_ordered_specimens()))
@@ -294,6 +306,9 @@ class Simulation:
 
             self.monitor_logs.append(fitness_arr[0])
             self.monitor_logs_avg.append(fitness_mean)
+
+        print(f"Generation: {self.current_generation} finished after {time.time() - gen_time} seconds")
+        self.current_generation = self.current_generation + 1
 
 
     def run(self):

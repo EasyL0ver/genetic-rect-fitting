@@ -1,4 +1,7 @@
 from geometry import Square, PlacedSquare
+from pkga import Specimen, Gene
+import random
+import numpy as np
 
 class OrderedSquare(Square):
     def __init__(self, width, height, order, flip=False):
@@ -47,6 +50,64 @@ class OrderedSquare(Square):
                 continue
             return sqr
 
+class PermutationSquareInitializer:
+    def __init__(self, permutation_count, permutation_bits):
+        self.permutation_count = permutation_count
+        self.permutation_bits = permutation_bits
+
+        self.format = '{:0' + str(self.permutation_bits) + 'b}'
+
+    def create_specimen(self, template):
+        k = self.permutation_bits + 1
+        l = list(range(self.permutation_count))
+        random.shuffle(l)
+        flip = np.random.choice([True, False], size=self.permutation_count)
+        specimen_arr = [None] * (self.permutation_count * k)
+
+        w_index = 0
+        for i in range(len(l)):
+            bitnum = [bool(int(x)) for x in self.format.format(l[i])]
+            for bit in bitnum:
+                specimen_arr[w_index] = bit
+                w_index += 1
+
+            specimen_arr[w_index] = flip[i]
+            w_index +=1
+
+
+        return Specimen(Gene(specimen_arr), template)
+
+class PermutationWithFlipMutator:
+    def __init__(self, mutation_rate, bin_size, bin_amount):
+        self.pmut = mutation_rate
+        self.bin_size = bin_size
+        self.bin_amount = bin_amount
+
+    def mutate_flip_bytes(self, specimen):
+        g = specimen.genome.bit_string
+        for i in range(self.bin_size -1, len(g), self.bin_size):
+            if random.random() < self.pmut:
+                g[i] = not g[i]
+
+    def mutate_permutation_bins(self, specimen):
+        g = specimen.genome.bit_string
+        if random.random() > self.pmut:
+            return
+
+        a = random.randint(0, self.bin_amount)
+        b = random.randint(0, self.bin_amount)
+
+        a_bin = g[a:a+self.bin_size]
+        g[a:a+self.bin_size] = g[b:b+self.bin_size]
+        g[b:b+self.bin_size] = a_bin
+
+        
+
+
+    def mutate(self, specimen, generation):
+        self.mutate_flip_bytes(specimen)
+
+
 class SQMutator:
     def __init__(self, default_mutation_rate):
         self.default_mutation_rate = default_mutation_rate
@@ -61,10 +122,12 @@ class SquareFittingEvaluator:
 
     def map_data(self, decoded_specimen):
         placed_squares = []
+        ind = 0 
         for key, value in decoded_specimen.decode().items():
-            matching_square = self.fit_squares[key]
-            placed = OrderedSquare(matching_square.width, matching_square.height, value["order"], value["flip"])
+            matching_square = self.fit_squares[value["sqr_id"]]
+            placed = OrderedSquare(matching_square.width, matching_square.height, ind, value["flip"])
             placed_squares.append(placed)
+            ind += 1
         return placed_squares
 
     def place_rectangles(self, rectangles):
