@@ -140,6 +140,29 @@ class OnePointBinaryCrossover:
         tmp = b.genome.bit_string[:index].copy()
         b.genome.bit_string[:index], a.genome.bit_string[:index]  = a.genome.bit_string[:index], tmp
 
+
+class PermutationCrossoverBin:
+    def __init__(self, bit_arr):
+        self.bit_arr = bit_arr
+
+    def __repr__(self):
+        out = 0
+        for bit in self.bit_arr:
+            out = (out << 1) | bit
+        return f"B{str(out)}"
+
+    def __str__(self):
+        return self.__repr__()
+    
+    def compare_to(self, other):
+        if not other:
+            return False
+            
+        for i in range(len(self.bit_arr)):
+            if self.bit_arr[i] != other.bit_arr[i]:
+                return False
+        return True
+
 class PermutationCrossover:
     def __init__(self, pcross, bin_size, bin_amount):
         self.pcross = pcross
@@ -147,23 +170,65 @@ class PermutationCrossover:
         self.bin_amount = bin_amount
 
     def roll_cross_over_points(self):
-        a = random.randint(0, bin_amount)
-        b = random.randint(0, bin_amount)
+        a = random.randint(0, self.bin_amount)
+        b = random.randint(0, self.bin_amount)
         s = sorted([a, b])
         return s[0], s[1]
+
+    def convert_to_bins(self, arr):
+        bins = [None] * (len(arr) // self.bin_size)
+        for i in range(len(bins)):
+            sl = arr[i * self.bin_size:(i + 1) * self.bin_size]
+            bins[i] = PermutationCrossoverBin(sl)
+        return bins
+
+    def set_substract(self, a_arr, b_arr):
+        result = []
+        for a in a_arr:
+            found_in_b = False
+            for b in b_arr:
+                if b.compare_to(a):
+                    found_in_b = True
+                    break
+            if not found_in_b:
+                result.append(a)
+        return result
+
+    def inner_cross_over(self, a, b, pstart, pstop):
+        ax = self.convert_to_bins(a.genome.bit_string)
+        bx = self.convert_to_bins(b.genome.bit_string)
+
+        child = [None] * len(ax)
+        child[:pstart] = bx[:pstart]
+        child[pstop:] = bx[pstop:]
+
+        added = ax[pstart:pstop]
+        removed = bx[pstart:pstop]
+        #duplikaty to te ktore sa w dodanych lecz nie w usunietych
+        #stracone to te ktore sa w usunietych lecz nie w dodanych
+        duplicates = self.set_substract(added, removed)
+        lost = self.set_substract(removed, added)
+
+        for i in range(len(duplicates)):
+            index = None
+            for c in range(len(child)):
+                if duplicates[i].compare_to(child[c]):
+                    index = c
+            child[index] = lost[i]
+        
+        child[pstart:pstop] = added
+
+        return child
 
     def cross_over(self,a,b):
         if random.random() > self.pcross:
             return
         pstart, pstop = self.roll_cross_over_points()
-        pstartb = pstart * self.bin_size
-        pstopb = pstop * self.bin_size
-        ax = a.genome.bit_string
-        bx = b.genome.bit_string
-        child = [0] * len(ax)
+        new_a = self.inner_cross_over(a,b,pstart,pstop)
+        new_b = self.inner_cross_over(b,a,pstart,pstop)
 
-        child[pstartb:pstopb] = ax[pstartb:pstopb]
-
+        a.genome.bit_string = new_a
+        b.genome.bit_string = new_b
         
 
 
