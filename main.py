@@ -38,7 +38,7 @@ evaluator = SquareFittingEvaluator(parent_square, fit_squares)
 
 solution_template = ga.GAMultiValueTemplate()
 for i in range(len(fit_squares)):
-    order_value = ga.GAIntegerValueTemplate(0, 64, 6)
+    order_value = ga.GAFixedIntegerValueTemplate(6)
     flip_value = ga.GABoolValueTemplate()
     square_template = ga.GAMultiValueTemplate()
     square_template.add_value("sqr_id", order_value)

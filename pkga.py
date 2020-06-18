@@ -11,12 +11,25 @@ class GABoolValueTemplate:
             raise "Cannot decode, array length mismatch"
         return bool(bit_array[0])
 
+class GAFixedIntegerValueTemplate:
+    def __init__(self,bits):
+        self.bits = bits
+
+    def decode(self, bit_array):
+        if len(bit_array) != self.bits:
+            raise "Cannot decode, array length mismatch"
+
+        out = 0
+        for bit in bit_array:
+            out = (out << 1) | bit
+        
+        return out
 
 class GAIntegerValueTemplate:
     def __init__(self, min_value, max_value, bits):
         diff = max_value - min_value
         self.bits = bits
-        self.bit_factor = diff / (pow(2, bits) - 1)
+        self.bit_factor = diff / (pow(2, bits))
         self.min_value = min_value
         self.max_value = max_value
 
@@ -27,8 +40,8 @@ class GAIntegerValueTemplate:
         out = 0
         for bit in bit_array:
             out = (out << 1) | bit
-
-        return int(round(self.min_value + out * self.bit_factor))
+        r = int(round(self.min_value + out * self.bit_factor))
+        return r
 
 
 class GAFloatValueTemplate:

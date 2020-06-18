@@ -57,11 +57,17 @@ class PermutationSquareInitializer:
 
         self.format = '{:0' + str(self.permutation_bits) + 'b}'
 
-    def create_specimen(self, template):
-        k = self.permutation_bits + 1
+    def get_random_permutation(self):
         l = list(range(self.permutation_count))
         random.shuffle(l)
-        flip = np.random.choice([True, False], size=self.permutation_count)
+        return l
+
+    def get_random_flip_vector(self):
+        return np.random.choice([True, False], size=self.permutation_count)
+
+    def generate_string(self, permutation, flip):
+        k = self.permutation_bits + 1
+        l = permutation
         specimen_arr = [None] * (self.permutation_count * k)
 
         w_index = 0
@@ -74,6 +80,12 @@ class PermutationSquareInitializer:
             specimen_arr[w_index] = flip[i]
             w_index +=1
 
+        return specimen_arr
+
+    def create_specimen(self, template):
+        p = self.get_random_permutation()
+        f = self.get_random_flip_vector()
+        specimen_arr = self.generate_string(p,f)
 
         return Specimen(Gene(specimen_arr), template)
 
@@ -123,7 +135,8 @@ class SquareFittingEvaluator:
     def map_data(self, decoded_specimen):
         placed_squares = []
         ind = 0 
-        for key, value in decoded_specimen.decode().items():
+        d = decoded_specimen.decode()
+        for key, value in d.items():
             matching_square = self.fit_squares[value["sqr_id"]]
             placed = OrderedSquare(matching_square.width, matching_square.height, ind, value["flip"])
             placed_squares.append(placed)
